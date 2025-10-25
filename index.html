@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品价格计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-5 bg-gray-50">
+    <!-- 价格计算区域 -->
+    <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold mb-5 text-gray-800">产品价格计算2025.10.24</h2>
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-medium text-gray-700">选择产品型号（可模糊搜索）</label>
+            <!-- 新增搜索输入框 -->
+            <input type="text" id="searchModel" placeholder="输入型号或规格关键词搜索..." class="w-full p-2 border border-gray-300 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <select id="productModel" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">--请选择型号--</option>
+                <option value="LZ-301" data-domestic="10.2" data-foreign="9.2">LZ-301（50PP0.55KG）</option>
+                <option value="LZ-302" data-domestic="5.7" data-foreign="5.1">LZ-302（30PP0.25KG）</option>
+                <option value="LZ-213" data-domestic="3.5" data-foreign="3.2">LZ-213（15PVC0.26KG）</option>
+                <option value="LZ-208A" data-domestic="6" data-foreign="5.5">LZ-208A（30PVC0.6KG）</option>
+                <option value="LZ-208B" data-domestic="8.5" data-foreign="7.8">LZ-208B（30黑底1.06KG）</option>
+                <option value="LZ-206C" data-domestic="7.2" data-foreign="6.7">LZ-206C（45PVC0.65KG）</option>
+            </select>
+        </div>
+
+        <!-- 产品图片展示区域 -->
+        <div class="mb-4">
+            <label class="block mb-2 font-medium text-gray-700">产品图片（双击放大）</label>
+            <img id="productImg" src="" alt="产品图片" class="max-w-md rounded-md border border-gray-200 hidden cursor-zoom-in transition-transform duration-300">
+            <p id="imgTip" class="text-gray-500">选择产品型号后显示对应图片</p>
+            
+            <!-- 新增图片放大弹窗 -->
+            <div id="imgModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+                <img id="modalImg" src="" alt="放大产品图片" class="max-w-[90%] max-h-[90vh]">
+                <button id="closeModal" class="absolute top-4 right-6 text-white text-3xl cursor-pointer hover:text-gray-300">×</button>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="block mb-2 font-medium text-gray-700">选择反光膜类型</label>
+            <select id="filmType" class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                <option value="">--请先选择产品型号--</option>
+            </select>
+        </div>
+
+        <!-- 价格结果显示 -->
+        <div id="priceResult" class="mt-6 p-4 bg-gray-50 rounded-md hidden">
+            <p class="text-lg font-semibold text-gray-800">内贸总价（不含膜/运费）：<span id="domesticTotal" class="text-green-600"></span> 元</p>
+            <p class="text-lg font-semibold text-gray-800 mt-2">外贸总价（不含膜/运费）：<span id="foreignTotal" class="text-green-600"></span> 元</p>
+        </div>
+    </div>
+
+    <script>
+        // 1. 型号-反光膜映射关系
+        const modelFilmMap = {
+            "LZ-301": [
+                { value: "gray-8.5+8.5", text: "灰色光面膜（8.5+8.5cm）", price: 1.4 }
+            ],
+            "LZ-302": [
+                { value: "gray-8", text: "灰色光面膜（8cm）", price: 0.7 }
+            ],
+            "LZ-213": [
+                { value: "adhesive-5.5", text: "背胶膜（5.5cm）", price: 0.6 }
+            ],
+            "LZ-208A": [
+                { value: "cone-8", text: "锥套（8cm）", price: 0.6 },
+                { value: "cone-10", text: "锥套（10cm）", price: 0.7 },
+                { value: "cone-8+8", text: "锥套（8+8cm）", price: 1.1 },
+                { value: "adhesive-8", text: "背胶膜（8cm）", price: 0.8 },
+                { value: "pet-8", text: "PET高强膜（8cm）", price: 1.5 },
+                { value: "pet-10", text: "PET高强膜（10cm）", price: 1.7 },
+                { value: "pc-8", text: "PC高强膜（8cm）", price: 2.0 },
+                { value: "pc-10", text: "PC高强膜（10cm）", price: 2.3 }
+            ],
+            "LZ-208B": [
+                { value: "cone-8", text: "锥套（8cm）", price: 0.6 },
+                { value: "cone-10", text: "锥套（10cm）", price: 0.7 },
+                { value: "cone-8+8", text: "锥套（8+8cm）", price: 1.1 },
+                { value: "adhesive-8", text: "背胶膜（8cm）", price: 0.8 },
+                { value: "pet-8", text: "PET高强膜（8cm）", price: 1.5 },
+                { value: "pet-10", text: "PET高强膜（10cm）", price: 1.7 },
+                { value: "pc-8", text: "PC高强膜（8cm）", price: 2.0 },
+                { value: "pc-10", text: "PC高强膜（10cm）", price: 2.3 }
+            ],
+            "LZ-206C": [
+                { value: "cone-10", text: "锥套（10cm）", price: 0.7 },
+                { value: "cone-8+8", text: "锥套（8+8cm）", price: 1.1 },
+                { value: "cone-10+10", text: "锥套（10+10cm）", price: 1.2 },
+                { value: "adhesive-10", text: "背胶膜（10cm）", price: 0.9 },
+                { value: "adhesive-8+8", text: "背胶膜（8+8cm）", price: 1.2 },
+                { value: "pet-10", text: "PET高强膜（10cm）", price: 1.6 },
+                { value: "pet-15", text: "PET高强膜（15cm）", price: 2.3 },
+                { value: "pet-8+8", text: "PET高强膜（8+8cm）", price: 3.0 },
+                { value: "pc-10", text: "PC高强膜（10cm）", price: 2.2 },
+                { value: "pc-15", text: "PC高强膜（15cm）", price: 3.3 },
+                { value: "pc-8+8", text: "PC高强膜（8+8cm）", price: 4.3 }
+            ]
+        };
+
+        // 2. 产品型号-在线图片链接映射
+        const modelImgMap = {
+            "LZ-208A": "https://z.wiki/u/XQkqhu",
+            "LZ-208B": "https://z.wiki/u/XQkqhu",
+            "LZ-206C": "https://z.wiki/u/XQkqhu"
+        };
+
+        // 3. 元素获取
+        const productModel = document.getElementById('productModel');
+        const filmType = document.getElementById('filmType');
+        const priceResult = document.getElementById('priceResult');
+        const domesticTotal = document.getElementById('domesticTotal');
+        const foreignTotal = document.getElementById('foreignTotal');
+        const productImg = document.getElementById('productImg');
+        const imgTip = document.getElementById('imgTip');
+        const searchModel = document.getElementById('searchModel');
+        const imgModal = document.getElementById('imgModal');
+        const modalImg = document.getElementById('modalImg');
+        const closeModal = document.getElementById('closeModal');
+
+        // 4. 型号模糊搜索功能
+        searchModel.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            const options = productModel.options;
+
+            for (let i = 1; i < options.length; i++) {
+                const optionText = options[i].textContent.toLowerCase();
+                const optionValue = options[i].value.toLowerCase();
+                
+                const isMatch = optionText.includes(searchTerm) || optionValue.includes(searchTerm);
+                options[i].style.display = isMatch ? 'block' : 'none';
+            }
+        });
+
+        // 5. 型号选择联动
+        productModel.addEventListener('change', function() {
+            const selectedModel = this.value;
+            filmType.innerHTML = '';
+            priceResult.classList.add('hidden');
+
+            // 图片切换逻辑
+            if (modelImgMap[selectedModel]) {
+                productImg.src = modelImgMap[selectedModel];
+                productImg.alt = `${selectedModel} 产品图片`;
+                productImg.classList.remove('hidden');
+                imgTip.classList.add('hidden');
+            } else {
+                productImg.src = '';
+                productImg.classList.add('hidden');
+                imgTip.classList.remove('hidden');
+                imgTip.textContent = selectedModel ? "该型号暂无产品图片" : "选择产品型号后显示对应图片";
+            }
+
+            // 反光膜联动逻辑
+            if (!selectedModel) {
+                filmType.disabled = true;
+                filmType.innerHTML = '<option value="">--请先选择产品型号--</option>';
+                return;
+            }
+
+            filmType.disabled = false;
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '--请选择反光膜类型--';
+            filmType.appendChild(defaultOpt);
+
+            modelFilmMap[selectedModel].forEach(film => {
+                const opt = document.createElement('option');
+                opt.value = film.value;
+                opt.textContent = film.text;
+                opt.dataset.price = film.price;
+                filmType.appendChild(opt);
+            });
+        });
+
+        // 6. 反光膜选择计算价格
+        filmType.addEventListener('change', function() {
+            const model = productModel.value;
+            const filmOpt = this.options[this.selectedIndex];
+            if (!model || !filmOpt.value) {
+                priceResult.classList.add('hidden');
+                return;
+            }
+
+            const baseDom = parseFloat(productModel.options[productModel.selectedIndex].dataset.domestic);
+            const baseFor = parseFloat(productModel.options[productModel.selectedIndex].dataset.foreign);
+            const filmPrice = parseFloat(filmOpt.dataset.price);
+
+            domesticTotal.textContent = (baseDom + filmPrice).toFixed(1);
+            foreignTotal.textContent = (baseFor + filmPrice).toFixed(1);
+            priceResult.classList.remove('hidden');
+        });
+
+        // 7. 图片双击放大功能
+        productImg.addEventListener('dblclick', function() {
+            if (this.src) {
+                modalImg.src = this.src;
+                imgModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+
+        // 8. 关闭放大弹窗
+        closeModal.addEventListener('click', function() {
+            imgModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        });
+
+        // 点击弹窗空白处关闭
+        imgModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+    </script>
+</body>
+</html>
